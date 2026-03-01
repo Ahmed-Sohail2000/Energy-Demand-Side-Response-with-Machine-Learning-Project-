@@ -1,0 +1,10 @@
+.env
+data/raw
+data/processed
+data/models
+data/logs
+__pycache__
+*.pkl
+*.parquet
+.DS_Store
+venv/
