@@ -18,7 +18,7 @@ PROCESSED_PARQUET = "data/processed/processed_data.parquet"  # path to merged lo
 FLEXIBLE_LOAD_PCT = 0.10   # 10% of load is flexible (can be reduced when we activate)
 MAX_REDUCTION_KW = 300.0   # maximum reduction per interval in kW (cap per 15-min slot)
 INTERVAL_HOURS = 0.25      # each interval is 15 minutes = 0.25 hours
-N_SIMULATIONS = 1000       # number of noise simulations for risk metric (P10)
+N_SIMULATIONS = 200       # number of noise simulations for risk metric (P10)
 
 
 def risk_metric(site_id: str, date: str, df: pd.DataFrame) -> float:
