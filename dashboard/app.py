@@ -58,6 +58,10 @@ def fetch_simulation(site_id, date_str):
     result = simulate(site_id, date_str)
     if result.empty:
         return None
+    # Ensure only the selected date is returned (96 intervals per day)
+    result = result[result["timestamp"].astype(str).str.startswith(date_str)]
+    if result.empty:
+        return None
     result = result.copy()
     result["timestamp"] = result["timestamp"].astype(str)
     return {
@@ -95,7 +99,13 @@ if run:
     
     for _, row in df[df["activate"] == 1].iterrows():
         fig.add_vrect(x0=row["timestamp"], x1=row["timestamp"] + pd.Timedelta(minutes=15), fillcolor="green", opacity=0.2, line_width=0)
-    fig.update_layout(title="Load, Price & Activation Signal")
+    fig.update_layout(
+        title="Load, Price & Activation Signal",
+        height=500,
+        bargap=0.1,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        xaxis=dict(tickformat="%H:%M", title="Time"),
+    )
     fig.update_yaxes(title_text="Load (kW)", secondary_y=False)
     fig.update_yaxes(title_text="Price (€/MWh)", secondary_y=True)
     st.plotly_chart(fig, use_container_width=True)

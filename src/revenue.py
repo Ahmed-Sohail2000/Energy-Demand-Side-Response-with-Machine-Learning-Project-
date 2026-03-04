@@ -59,9 +59,10 @@ def simulate(site_id: str, date: str) -> pd.DataFrame:
     # ----- 2. Load processed data and filter to this site and date -----
     raw = pd.read_parquet(PROCESSED_PARQUET)
     raw["timestamp"] = pd.to_datetime(raw["timestamp"])  # ensure datetime for merge
-    target_dt = pd.to_datetime(date).date()  # compare dates only (no time)
-    raw = raw[(raw["site_id"] == site_id) & (raw["timestamp"].dt.date == target_dt)].copy()
-    raw = raw[["timestamp", "load_kw", "price_eur_mwh"]]  # keep only columns we need
+    date_str = date if isinstance(date, str) else pd.to_datetime(date).strftime("%Y-%m-%d")
+    raw = raw[raw["timestamp"].astype(str).str.startswith(date_str)]
+    raw = raw[raw["site_id"] == site_id]
+    raw = raw[["timestamp", "load_kw", "price_eur_mwh"]].copy()  # keep only columns we need
 
     # ----- 3. Merge load and price onto the signal (one row per timestamp) -----
     df = signal[["timestamp", "site_id", "activate"]].merge(
@@ -90,6 +91,11 @@ def simulate(site_id: str, date: str) -> pd.DataFrame:
     # ----- 6. Add risk metric: P10 of simulated daily revenues -----
     risk_p10 = risk_metric(site_id, date, df)
     df["risk_p10_eur"] = risk_p10
+
+    # Ensure only the selected date and site (96 rows per day)
+    df = df[df["timestamp"].astype(str).str.startswith(date_str)]
+    df = df[df["site_id"] == site_id]
+    print(f"simulate() returning {len(df)} rows for {site_id} on {date_str}")
 
     # Return only the columns we promise, in the right order
     return df[
