@@ -65,7 +65,7 @@ This installs all required Python packages.
 
 ### Step 4 — Run the Streamlit dashboard
 ```bash
-streamlit run app/main.py
+streamlit run dashboard/app.py
 ```
 
 Your browser will open automatically at http://localhost:8501
