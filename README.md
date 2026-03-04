@@ -26,19 +26,51 @@ tests/
 
 ## How to Run
 
-1. Clone the repo
+### Step 1 — Clone the repository
+
+Open your terminal and run:
+```bash
 git clone https://github.com/Ahmed-Sohail2000/Energy-Demand-Side-Response-with-Machine-Learning-Project.git
+```
+
+Then navigate into the project folder:
+```bash
 cd Energy-Demand-Side-Response-with-Machine-Learning-Project
+```
 
-2. Set up the environment
+### Step 2 — Create and activate a virtual environment
+
+Create the virtual environment:
+```bash
 python -m venv venv
-.\venv\Scripts\activate        # Windows
-source venv/bin/activate       # macOS/Linux
-pip install -r requirements.txt
+```
 
-3. Run the Streamlit dashboard
+Activate it:
+```bash
+# Windows
+.\venv\Scripts\activate
+
+# macOS / Linux
+source venv/bin/activate
+```
+
+You should see (venv) appear at the start of your terminal line — this means it is active.
+
+### Step 3 — Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+This installs all required Python packages.
+
+### Step 4 — Run the Streamlit dashboard
+```bash
 streamlit run app/main.py
-Open your browser at http://localhost:8501
+```
+
+Your browser will open automatically at http://localhost:8501
+
+Or access the live deployed app here: https://demandsideresponse.streamlit.app/
 
 ---
 
