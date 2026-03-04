@@ -27,7 +27,6 @@ st.title("⚡ Demand Side Response Dashboard")
 # Resolve exact data path (project root when run via: streamlit run dashboard/app.py)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DATA_PARQUET = os.path.join(_PROJECT_ROOT, "data", "processed", "processed_data.parquet")
-st.write("**Data file path:**", _DATA_PARQUET)
 
 try:
     df_sites = pd.read_parquet(_DATA_PARQUET)
@@ -35,14 +34,6 @@ try:
 except Exception:
     st.error("Cannot load processed data. Make sure data/processed/processed_data.parquet exists.")
     st.stop()
-
-# Debug: first 10 rows and load_kw range (values should be in thousands of kW)
-with st.expander("Data check — first 10 rows & load_kw range"):
-    st.dataframe(df_sites.head(10))
-    load_min, load_max = df_sites["load_kw"].min(), df_sites["load_kw"].max()
-    st.write("**load_kw** — min:", load_min, "| max:", load_max)
-    if load_max <= 100 or (df_sites["load_kw"].diff().dropna().abs().max() < 1e-6 and len(df_sites) > 1):
-        st.warning("Load values look wrong (0–100 or flat). Check ingestion and that raw energy_dataset.csv is used without normalisation.")
 
 # Sidebar controls: user selects a site and date, then clicks Run Simulation
 site = st.sidebar.selectbox("Site", sites)
