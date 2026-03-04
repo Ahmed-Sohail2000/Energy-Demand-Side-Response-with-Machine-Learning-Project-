@@ -12,29 +12,24 @@ Run with:
     streamlit run dashboard/app.py
 """
 
-import sys
+import sys, os
 import streamlit as st
-import requests
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# Base URL of the FastAPI backend — must be running before launching this dashboard
-API = "http://127.0.0.1:8000"
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.revenue import simulate
+
 st.set_page_config(page_title="DSR Dashboard — Cledion", layout="wide")
 st.title("⚡ Demand Side Response Dashboard")
 
-# Fetch available site IDs from the API on every page load
-# If the API is unreachable, show an error and stop the app
-sites = []
 try:
-    r = requests.get(f"{API}/sites", timeout=5)
-    r.raise_for_status()
-    sites = r.json()["sites"]
+    df_sites = pd.read_parquet("data/processed/processed_data.parquet")
+    sites = sorted(df_sites["site_id"].unique().tolist())
 except Exception:
-    st.error("Cannot connect to API. Make sure the FastAPI server is running.")
+    st.error("Cannot load processed data. Make sure data/processed/processed_data.parquet exists.")
     st.stop()
-    sys.exit(1)
 
 # Sidebar controls: user selects a site and date, then clicks Run Simulation
 site = st.sidebar.selectbox("Site", sites)
@@ -46,20 +41,28 @@ run = st.sidebar.button("Run Simulation")
 # the same heavy computation when the user interacts with the page
 @st.cache_data(ttl=300)
 def fetch_simulation(site_id, date_str):
-    resp = requests.get(f"{API}/simulate", params={"site_id": site_id, "date": date_str}, timeout=60)
-    resp.raise_for_status()
-    return resp.json()
+    # Call simulate() directly — no HTTP request needed
+    result = simulate(site_id, date_str)
+    if result.empty:
+        return None
+    result = result.copy()
+    result["timestamp"] = result["timestamp"].astype(str)
+    return {
+        "daily_total_eur": float(result["daily_total_eur"].iloc[0]),
+        "risk_p10_eur": float(result["risk_p10_eur"].iloc[0]),
+        "activated_intervals": int((result["activate"] == 1).sum()),
+        "intervals": result.to_dict(orient="records"),
+    }
 
 
 # Only run the simulation when the user clicks the button
 if run:
     date_str = date.strftime("%Y-%m-%d")
     with st.spinner("Running simulation... please wait ⏳"):
-        try:
-            data = fetch_simulation(site, date_str)
-        except requests.RequestException as e:
-            st.error(f"API error: {e.response.text if e.response is not None else str(e)}")
-            st.stop()
+        data = fetch_simulation(site, date_str)
+    if data is None:
+        st.warning("No data found for this site and date.")
+        st.stop()
     df = pd.DataFrame(data["intervals"])
     df["timestamp"] = pd.to_datetime(df["timestamp"])
 
@@ -76,6 +79,7 @@ if run:
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(go.Bar(x=df["timestamp"], y=df["load_kw"], name="Load (kW)"), secondary_y=False)
     fig.add_trace(go.Scatter(x=df["timestamp"], y=df["price_eur_mwh"], name="Price (€/MWh)", line=dict(color="red")), secondary_y=True)
+    
     for _, row in df[df["activate"] == 1].iterrows():
         fig.add_vrect(x0=row["timestamp"], x1=row["timestamp"] + pd.Timedelta(minutes=15), fillcolor="green", opacity=0.2, line_width=0)
     fig.update_layout(title="Load, Price & Activation Signal")
