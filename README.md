@@ -15,8 +15,8 @@ src/
   signal.py            # DSR signal: score (0-1) + binary activation per interval
   activation.py        # Site activation engine
   revenue.py           # Revenue simulation (flexible kW, daily total, P10 risk)
-app/
-  main.py              # Streamlit dashboard (load + price + signal, top windows, revenue)
+dashboard/
+  app.py              # Streamlit dashboard (load + price + signal, top windows, revenue)
 tests/
   test_activation.py   # 10 unit tests
   test_revenue.py      # 11 unit tests
