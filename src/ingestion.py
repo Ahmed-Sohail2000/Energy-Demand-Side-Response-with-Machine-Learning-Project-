@@ -1,14 +1,18 @@
 """
 DSR data ingestion for Cledion case study.
 All data comes from the real Kaggle Spain energy dataset — no fake or synthetic data.
+Raw load values from the CSV are used without any normalisation (load_kw in thousands).
 """
 import os
+import shutil
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_CSV = "data/raw/energy_dataset.csv"
+RAW_CSV_ABS = os.path.join(PROJECT_ROOT, "data", "raw", "energy_dataset.csv")
 METER_LOAD_XLSX = "data/raw/meter_load.xlsx"
 DAY_AHEAD_XLSX = "data/raw/day_ahead_prices.xlsx"
 IMBALANCE_XLSX = "data/raw/imbalance_prices.xlsx"
@@ -20,10 +24,25 @@ SITE_FACTORS = {"site_A": 0.4, "site_B": 0.35, "site_C": 0.25}
 
 def run():
     # -------------------------------------------------------------------------
-    # STEP 1 — Load and clean the real Kaggle data
+    # STEP 0 — Ensure raw CSV exists (copy from project root if missing)
+    # -------------------------------------------------------------------------
+    if not os.path.exists(RAW_CSV_ABS):
+        root_csv = os.path.join(PROJECT_ROOT, "energy_dataset.csv")
+        if os.path.exists(root_csv):
+            os.makedirs(os.path.dirname(RAW_CSV_ABS), exist_ok=True)
+            shutil.copy2(root_csv, RAW_CSV_ABS)
+            print(f"Copied energy_dataset.csv from project root to {RAW_CSV_ABS}")
+        else:
+            raise FileNotFoundError(
+                f"Raw data not found at {RAW_CSV_ABS} or at {root_csv}. "
+                "Place energy_dataset.csv in data/raw/ or in the project root and re-run."
+            )
+
+    # -------------------------------------------------------------------------
+    # STEP 1 — Load and clean the real Kaggle data (raw load_kw, no normalisation)
     # -------------------------------------------------------------------------
     print("STEP 1 — Load and clean")
-    df = pd.read_csv(RAW_CSV)
+    df = pd.read_csv(RAW_CSV_ABS)
 
     # Keep only the 4 columns we need (exact CSV names: time, total load actual, price day ahead, price actual)
     df = df[["time", "total load actual", "price day ahead", "price actual"]].copy()
@@ -49,7 +68,7 @@ def run():
     df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
     df = df.set_index("timestamp").sort_index()
 
-    # Fill missing load_kw using forward-fill then back-fill, then drop any remaining missing prices
+    # Fill missing load_kw using forward-fill then back-fill before any resampling or row drops
     df["load_kw"] = df["load_kw"].ffill().bfill()
     df = df.dropna(subset=["price_eur_mwh"])
     print(f"  Missing values after fill: {df.isnull().sum().sum()}")
