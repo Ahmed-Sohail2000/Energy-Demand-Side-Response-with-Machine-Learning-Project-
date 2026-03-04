@@ -93,16 +93,17 @@ def ml_score(site_id: str, date: str, df: pd.DataFrame) -> np.ndarray:
 
     # ----- 3. Time-series cross-validation: train on past, validate on future (no shuffle) -----
     model = XGBClassifier(
-        n_estimators=300,
+        n_estimators=100,
         learning_rate=0.05,
-        max_depth=5,
+        max_depth=4,
         subsample=0.8,
         colsample_bytree=0.8,
         random_state=42,
         eval_metric="logloss",
         verbosity=0,
+        n_jobs=-1,
     )
-    tscv = TimeSeriesSplit(n_splits=5)
+    tscv = TimeSeriesSplit(n_splits=3)
     fold_accs = []
     for train_idx, val_idx in tscv.split(full[FEATURE_COLS]):
         X_tr = full[FEATURE_COLS].iloc[train_idx]
